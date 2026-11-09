@@ -1,6 +1,6 @@
 {
   "name": "@osman3n/dsh-session-share",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "type": "module",
   "description": "Share the whole Session as a self-contained HTML transcript, and import one back as a read-only chat view.",
