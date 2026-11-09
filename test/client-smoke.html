@@ -43,7 +43,7 @@
       throw new Error("unexpected require: " + name);
     });
 
-    if (!Array.isArray(mod.inject) || mod.inject.indexOf("slots") < 0 || mod.inject.indexOf("locale") < 0) {
+    if (!Array.isArray(mod.inject) || mod.inject.indexOf("slots") < 0 || mod.inject.indexOf("locale") < 0 || mod.inject.indexOf("uiWorkspace") < 0) {
       fail("client inject list is incomplete");
     }
 
@@ -53,9 +53,15 @@
         seen.selectedPanel = panelId;
       },
     };
+    const uiWorkspace = {
+      openSession(sessionId) {
+        seen.openedSession = sessionId;
+      },
+    };
     const ctx = {
       get(name) {
         if (name === "layout") return layout;
+        if (name === "uiWorkspace") return uiWorkspace;
         return undefined;
       },
       effect(fn, label) {
@@ -93,7 +99,9 @@
     if (!seen["session-share: import button"]) fail("import button effect did not run");
     if (seen.locale.namespace !== "session-share") fail("unexpected locale namespace");
     if (seen.locale.dictionaries.en["action.label"].indexOf("Share") < 0) fail("English label missing");
+    if (!seen.locale.dictionaries.en["import.continue"]) fail("English continue label missing");
     if (!seen.locale.dictionaries.zh["action.label"]) fail("Chinese label missing");
+    if (!seen.locale.dictionaries.zh["import.continue"]) fail("Chinese continue label missing");
     if (seen.injectSlot !== "main") fail("unexpected last injected slot name");
     const action = seen.slots["conversation.chat.assistant-actions"];
     if (!action || action.spec.id !== "session-share") fail("assistant slot was not registered");
@@ -104,7 +112,9 @@
     if (!injected || injected.sessionId !== "s-1") fail("slot inject did not supply sessionId");
     const main = seen.slots.main;
     if (!main || main.spec.key !== "session-import") fail("main panel key missing");
-    if (main.spec.inject().layout !== layout) fail("main panel layout injection missing");
+    const mainProps = main.spec.inject();
+    if (mainProps.layout !== layout) fail("main panel layout injection missing");
+    if (mainProps.uiWorkspace !== uiWorkspace) fail("main panel workspace injection missing");
     if (!document.querySelector('style[data-plugin-css="@osman3n/dsh-session-share/session-share.css"]')) {
       fail("plugin stylesheet was not injected");
     }

@@ -21,12 +21,13 @@ const snapshot = {
 };
 
 function makeContext({ withQuery = true, read } = {}) {
-  const state = { route: null };
+  const state = { route: null, routes: new Map() };
   const ctx = {
     connection: {
       fetch: {
         register(route) {
           state.route = route;
+          state.routes.set(route.path, route);
           return () => {};
         },
       },
@@ -41,7 +42,7 @@ function makeContext({ withQuery = true, read } = {}) {
     },
   };
   apply(ctx);
-  return state.route;
+  return state.routes.get("/api/session.share");
 }
 
 const route = makeContext();

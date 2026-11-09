@@ -3,7 +3,7 @@
 Download a whole Session as one self-contained HTML file and send it to anyone.
 The recipient can open it in a browser without DSH, an account, a server, or an
 internet connection. If they also install this plugin, they can import the file
-back into DSH as a read-only chat view.
+back into DSH as a read-only chat view and continue it as a real Session.
 
 > **Status: source published, package unpublished.** The GitHub repository is
 > public at <https://github.com/osman3n/dsh-session-share>, but the package is
@@ -22,9 +22,15 @@ Two controls, no changes to existing chat rendering:
 
 The share icon exports the **whole Session**, not just that one reply, so every
 reply offers the same download. The import icon reads a DSH Session Share HTML
-file and opens a read-only, chat-style transcript in the central panel. It does
-not create a Session, does not add anything to your history, and never sends the
+file and opens a read-only, chat-style transcript in the central panel. Merely
+opening it does not create a Session, add anything to your history, or send the
 imported text to a model. No other plugin is required.
+
+The imported panel has one explicit **Continue in a new chat** button. It creates
+a real Session and appends the imported turns to that Session's log, so the next
+message continues the conversation with the imported history in model context.
+That action does send the imported text to the configured model; it asks for
+confirmation first.
 
 ## Install (suggested, not performed)
 
@@ -57,10 +63,20 @@ already covers Markdown copy and ZIP download without any extra plugin.
 2. Choose a `dsh-session-*.html` file produced by this plugin.
 3. The transcript opens in a read-only panel. Use **Back to chat** to return.
 
-The import reads only the inert JSON block embedded in the file; it does not
-execute scripts from the HTML, load remote assets, or add a Session to your
-history. The panel is a viewer, not a conversation: there is no composer and no
-way to continue the imported thread.
+Only the inert JSON block embedded in the file is read; imported HTML scripts are
+never executed, remote assets are never loaded, and merely importing adds no
+Session to your history.
+
+To continue it, click **Continue in a new chat**, read the warning, and confirm.
+The plugin creates a new Session through the normal Host controller (so it gets
+the normal workspace, agent, and persistence writer), appends one completed turn
+per imported turn, and opens that Session. The imported history is then visible
+in the normal chat and the next message you send continues from it. The button
+does not silently send anything before you confirm.
+
+If the file contains tool output, it is appended inside the corresponding
+assistant turn with an explicit `[Imported tool output: …]` label. The plugin
+does not fabricate tool-call ids or claim that a tool ran in the new Session.
 
 The file is a static transcript: no JavaScript, no external styles, no fonts,
 no images fetched from the network, and no calls back to DSH. It includes:
@@ -80,9 +96,17 @@ Session. It can contain secrets. Review the HTML before sending it, and treat
 the file with the same care as the original conversation.
 
 The Host route is authenticated by DSH's Connection service. There is no public
-endpoint and no upload: the browser downloads the file locally. Do not enable
-this plugin in a profile that is exposed to people who should not read the
-Sessions in it.
+endpoint and no upload: the browser downloads the file locally. The continuation
+route is also authenticated and accepts only the small, validated transcript
+payload; it never accepts a raw HTML page.
+
+An imported transcript is untrusted input. Continuing it makes that text part of
+the model's context, where it could contain prompt-injection attempts or a
+forged conversation. The confirmation dialog exists for that reason. Do not
+continue a file from someone you do not trust.
+
+Do not enable this plugin in a profile that is exposed to people who should not
+read the Sessions in it.
 
 ## Compatibility
 
@@ -93,9 +117,12 @@ uses the `layout` service to open a read-only panel without changing the current
 Session. It uses:
 
 - `sessionQuery.readSession()` on the Host;
-- `connection.fetch.register()` for the authenticated route;
-- the client `slots`, `locale`, and `layout` services;
-- `@deepseek-ai/dsh-client-ui-layout` as a declared client dependency.
+- `connection.fetch.register()` for the authenticated routes;
+- `sessionController.create()` plus the live `sessions` store to create the
+  continuable Session, and `sessions.flush()` before handing the id back;
+- the client `slots`, `locale`, `layout`, and `uiWorkspace` services;
+- `@deepseek-ai/dsh-client-ui-layout` and
+  `@deepseek-ai/dsh-client-ui-workspace` as declared client dependencies.
 
 No DSH client packages are imported at runtime. The renderer is dependency-free.
 The import button finds the Workspaces header by its stable `_headerActions`
@@ -148,16 +175,20 @@ someone who was not there.
 
 ## Files
 
-- `index.js` — Host plugin: authenticated `/api/session.share` route, the
-  standalone HTML renderer, and the embedded import payload.
+- `index.js` — Host plugin: authenticated `/api/session.share` and
+  `/api/session.share/continue` routes, the standalone HTML renderer, and the
+  embedded import payload.
 - `client.js` — Browser plugin: per-response share action, Workspaces import
-  button, read-only chat panel, locale strings, and styles.
+  button, read-only chat panel with a continue action, locale strings, and
+  styles.
 - `cordis.patch.yml` — bundle patch that inserts the plugin.
 - `locale/` — package metadata for English and Simplified Chinese.
 - `icon.svg` — plugin icon.
 - `test/render.test.mjs` — renderer regression test (run with Node).
 - `test/import-payload.test.mjs` — embedded-payload round-trip and injection
   test (run with Node).
-- `test/host-route.test.mjs` — authenticated route and error-path test.
+- `test/host-route.test.mjs` — authenticated download route and error-path test.
+- `test/continue-route.test.mjs` — continuation route, validation, event shape,
+  title, and flush test.
 - `test/client-smoke.html` — browser smoke test for the module wrapper, slot and
   panel registration, locale dictionaries, and rendered button.

@@ -18,6 +18,7 @@ window.__ModuleLoader__.load({
     const SLOT = "conversation.chat.assistant-actions";
     const ID = "session-share";
     const ROUTE = "/api/session.share".slice(1);
+    const CONTINUE_ROUTE = "/api/session.share/continue".slice(1);
     const CSS_TAG = "@osman3n/dsh-session-share/session-share.css";
     const PANEL_ID = "session-import";
     const IMPORT_DATA_ID = "dsh-session-share-data";
@@ -40,8 +41,13 @@ window.__ModuleLoader__.load({
       "import.emptyBody": "Use the import button in the Workspaces header, then choose a DSH Session Share HTML file.",
       "import.back": "Back to chat",
       "import.badge": "Read-only import",
-      "import.notice": "This transcript is not part of your Sessions, cannot be continued, and is never sent to a model.",
+      "import.notice": "This transcript is not part of your Sessions. Continue only if you trust the file: doing so creates a real Session and sends its text to a model.",
       "import.noMessages": "This transcript contains no displayable messages.",
+      "import.continue": "Continue in a new chat",
+      "import.continuing": "Opening…",
+      "import.continueConfirm": "Create a real Session from this imported chat? Its text becomes model context and can influence future replies. Only continue if you trust the file.",
+      "import.continueSuccess": "Imported chat opened as a new Session.",
+      "import.continueFailed": "Could not open the imported chat as a Session.",
       "import.tool": "Tool",
       "import.arguments": "Arguments",
       "import.result": "Result",
@@ -65,8 +71,13 @@ window.__ModuleLoader__.load({
       "import.emptyBody": "请使用工作区标题栏中的导入按钮，然后选择一个 DSH 会话分享 HTML 文件。",
       "import.back": "返回聊天",
       "import.badge": "只读导入",
-      "import.notice": "此记录不属于你的会话，不能继续对话，也不会发送给模型。",
+      "import.notice": "此记录不属于你的会话。只有信任该文件时才继续：继续会创建真实会话，并将其文本发送给模型。",
       "import.noMessages": "此记录没有可显示的消息。",
+      "import.continue": "在新会话中继续",
+      "import.continuing": "正在打开…",
+      "import.continueConfirm": "要从这段导入的聊天创建真实会话吗？其文本会成为模型上下文，并影响后续回复。只有信任该文件时才继续。",
+      "import.continueSuccess": "已将导入的聊天作为新会话打开。",
+      "import.continueFailed": "无法将导入的聊天作为会话打开。",
       "import.tool": "工具",
       "import.arguments": "参数",
       "import.result": "结果",
@@ -221,6 +232,33 @@ window.__ModuleLoader__.load({
 }
 .dsh-session-share-back:hover {
   background: var(--dsw-alias-interactive-bg-hover, rgb(127 127 127 / 10%));
+}
+.dsh-session-share-panel-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+.dsh-session-share-continue {
+  border: 1px solid var(--dsw-alias-brand-primary, #4f6bed);
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: var(--dsw-alias-brand-primary, #4f6bed);
+  color: #ffffff;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dsh-session-share-continue:hover {
+  filter: brightness(1.06);
+}
+.dsh-session-share-continue:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.dsh-session-share-continue:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, #4f6bed);
+  outline-offset: 2px;
 }
 .dsh-session-share-notice {
   margin: 0 0 22px;
@@ -723,6 +761,52 @@ window.__ModuleLoader__.load({
       const data = useImportedChat();
       const t = typeof props.t === "function" ? props.t : (key) => EN[key] ?? key;
       const layout = props.layout;
+      const uiWorkspace = props.uiWorkspace;
+      const [continuing, setContinuing] = React.useState(false);
+
+      const continueInNewChat = async () => {
+        if (data === null || continuing) return;
+        if (uiWorkspace === undefined || typeof uiWorkspace.openSession !== "function") {
+          showToast(t("import.continueFailed"), "error");
+          return;
+        }
+        if (typeof window.confirm === "function" && !window.confirm(t("import.continueConfirm"))) return;
+
+        setContinuing(true);
+        try {
+          const response = await fetch(CONTINUE_ROUTE, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              format: IMPORT_FORMAT,
+              version: IMPORT_VERSION,
+              title: data.title,
+              sessionId: data.sessionId,
+              cwd: data.cwd,
+              createdAt: data.createdAt,
+              exportedAt: data.exportedAt,
+              turns: data.turns,
+            }),
+          });
+          let result = {};
+          try {
+            result = await response.json();
+          } catch {
+            // The status check below reports the failure.
+          }
+          if (!response.ok || typeof result.sessionId !== "string" || result.sessionId.length === 0) {
+            throw new Error(typeof result.error === "string" ? result.error : "session continuation failed");
+          }
+          uiWorkspace.openSession(result.sessionId);
+          showToast(t("import.continueSuccess"), "success");
+        } catch (error) {
+          console.error("[session-share] could not continue imported chat", error);
+          showToast(t("import.continueFailed"), "error");
+        } finally {
+          setContinuing(false);
+        }
+      };
 
       if (data === null) {
         return React.createElement(
@@ -763,15 +847,29 @@ window.__ModuleLoader__.load({
               ),
             ),
             React.createElement(
-              "button",
-              {
-                type: "button",
-                className: "dsh-session-share-back",
-                onClick: () => {
-                  if (layout !== undefined && typeof layout.selectPanel === "function") layout.selectPanel(null);
+              "div",
+              { className: "dsh-session-share-panel-actions" },
+              React.createElement(
+                "button",
+                {
+                  type: "button",
+                  className: "dsh-session-share-continue",
+                  disabled: continuing,
+                  onClick: continueInNewChat,
                 },
-              },
-              t("import.back"),
+                continuing ? t("import.continuing") : t("import.continue"),
+              ),
+              React.createElement(
+                "button",
+                {
+                  type: "button",
+                  className: "dsh-session-share-back",
+                  onClick: () => {
+                    if (layout !== undefined && typeof layout.selectPanel === "function") layout.selectPanel(null);
+                  },
+                },
+                t("import.back"),
+              ),
             ),
           ),
           React.createElement("p", { className: "dsh-session-share-notice" }, t("import.notice")),
@@ -784,10 +882,11 @@ window.__ModuleLoader__.load({
       );
     }
 
-    const inject = ["slots", "locale", "layout"];
+    const inject = ["slots", "locale", "layout", "uiWorkspace"];
 
     function apply(ctx) {
       const layout = typeof ctx.get === "function" ? ctx.get("layout") : Reflect.get(ctx, "layout");
+      const uiWorkspace = typeof ctx.get === "function" ? ctx.get("uiWorkspace") : Reflect.get(ctx, "uiWorkspace");
 
       ctx.effect(() => {
         ensureCss();
@@ -825,7 +924,7 @@ window.__ModuleLoader__.load({
               name: "main",
               key: PANEL_ID,
               locale: NS,
-              inject: () => ({ layout }),
+              inject: () => ({ layout, uiWorkspace }),
             },
             ImportedChatPanel,
           ),
