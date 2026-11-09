@@ -26,9 +26,10 @@ route; it does not inject content into the transcript.
 This repository is only the source. Installation is a separate, explicit step
 for the person who wants the button:
 
-1. Open DSH's plugin manager for the current profile.
-2. Install the bundle from this folder:
-   `C:\Users\osman_lam\Projects\Basic\plugins\session-share`
+1. Clone this repository, or use an existing checkout.
+2. Open DSH's plugin manager for the current profile and install the bundle from
+   the folder containing this README. On this machine that folder is
+   `C:\Users\osman_lam\Projects\Basic\plugins\session-share`.
 3. Reload or restart DSH if the plugin manager asks for it.
 
 Do not install it merely to read this README. The built-in Session log export
@@ -125,3 +126,6 @@ someone who was not there.
 - `locale/` — package metadata for English and Simplified Chinese.
 - `icon.svg` — plugin icon.
 - `test/render.test.mjs` — renderer regression test (run with Node).
+- `test/host-route.test.mjs` — authenticated route and error-path test.
+- `test/client-smoke.html` — browser smoke test for the module wrapper, slot
+  registration, locale dictionaries, and rendered button.
