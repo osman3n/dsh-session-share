@@ -1,4 +1,4 @@
-# DSH Session Share
+﻿# DSH Session Share
 
 Download a whole Session as one self-contained HTML file and send it to anyone.
 The recipient can open it in a browser without DSH, an account, a server, or an
@@ -15,7 +15,7 @@ back into DSH as a read-only chat view and continue it as a real Session.
 
 Two controls, no changes to existing chat rendering:
 
-1. A 28 px share icon in the action row under each finalized assistant message —
+1. A 28 px share icon in the action row under each finalized assistant message â€”
    immediately after **Copy** and before **Like / Dislike** and **Branch**.
 2. A 28 px import icon in the Workspaces header, beside **Search**,
    **View options**, and **Add workspace**.
@@ -83,7 +83,7 @@ imported history is then visible in the normal chat and the next message you sen
 continues from it. The button does not silently send anything before you confirm.
 
 If the file contains tool output, it is appended inside the corresponding
-assistant turn with an explicit `[Imported tool output: …]` label. The plugin
+assistant turn with an explicit `[Imported tool output: ...]` label. The plugin
 does not fabricate tool-call ids or claim that a tool ran in the new Session.
 
 The file is a static transcript: no JavaScript, no external styles, no fonts,
@@ -96,6 +96,10 @@ no images fetched from the network, and no calls back to DSH. It includes:
 - tool arguments and results;
 - attachment cards for images and files, with name/size/type metadata (the bytes
   themselves are not embedded).
+
+Files exported by versions before 0.5.0 did not include attachment metadata. They
+still import correctly, but file references appear as `@` mention chips rather
+than attachment cards; re-export the Session with 0.5.0 or newer to get cards.
 
 ## Privacy
 
@@ -185,20 +189,21 @@ someone who was not there.
 
 ## Files
 
-- `index.js` — Host plugin: authenticated `/api/session.share` and
+- `index.js` â€” Host plugin: authenticated `/api/session.share` and
   `/api/session.share/continue` routes, the standalone HTML renderer, and the
   embedded import payload.
-- `client.js` — Browser plugin: per-response share action, Workspaces import
+- `client.js` â€” Browser plugin: per-response share action, Workspaces import
   button, read-only chat panel with a continue action, locale strings, and
   styles.
-- `cordis.patch.yml` — bundle patch that inserts the plugin.
-- `locale/` — package metadata for English and Simplified Chinese.
-- `icon.svg` — plugin icon.
-- `test/render.test.mjs` — renderer regression test (run with Node).
-- `test/import-payload.test.mjs` — embedded-payload round-trip and injection
+- `cordis.patch.yml` â€” bundle patch that inserts the plugin.
+- `locale/` â€” package metadata for English and Simplified Chinese.
+- `icon.svg` â€” plugin icon.
+- `test/render.test.mjs` â€” renderer regression test (run with Node).
+- `test/import-payload.test.mjs` â€” embedded-payload round-trip and injection
   test (run with Node).
-- `test/host-route.test.mjs` — authenticated download route and error-path test.
-- `test/continue-route.test.mjs` — continuation route, validation, event shape,
+- `test/host-route.test.mjs` â€” authenticated download route and error-path test.
+- `test/continue-route.test.mjs` â€” continuation route, validation, event shape,
   title, and flush test.
-- `test/client-smoke.html` — browser smoke test for the module wrapper, slot and
+- `test/client-smoke.html` â€” browser smoke test for the module wrapper, slot and
   panel registration, locale dictionaries, and rendered button.
+
