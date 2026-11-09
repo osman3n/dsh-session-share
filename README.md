@@ -1,8 +1,9 @@
 # DSH Session Share
 
 Download a whole Session as one self-contained HTML file and send it to anyone.
-The recipient opens it in a browser. They do not need DSH, an account, a server,
-or an internet connection.
+The recipient can open it in a browser without DSH, an account, a server, or an
+internet connection. If they also install this plugin, they can import the file
+back into DSH as a read-only chat view.
 
 > **Status: source published, package unpublished.** The GitHub repository is
 > public at <https://github.com/osman3n/dsh-session-share>, but the package is
@@ -12,14 +13,18 @@ or an internet connection.
 
 ## What it changes
 
-One 28 px share icon in the action row under each finalized assistant message —
-immediately after **Copy** and before **Like / Dislike** and **Branch**.
+Two controls, no changes to existing chat rendering:
 
-The icon exports the **whole Session**, not just that one reply, so every reply
-offers the same download. It does **not** change message content, the composer,
-the conversation layout, or any existing export behaviour. No other plugin is
-required. The browser half only calls the plugin's own authenticated download
-route; it does not inject content into the transcript.
+1. A 28 px share icon in the action row under each finalized assistant message —
+   immediately after **Copy** and before **Like / Dislike** and **Branch**.
+2. A 28 px import icon in the Workspaces header, beside **Search**,
+   **View options**, and **Add workspace**.
+
+The share icon exports the **whole Session**, not just that one reply, so every
+reply offers the same download. The import icon reads a DSH Session Share HTML
+file and opens a read-only, chat-style transcript in the central panel. It does
+not create a Session, does not add anything to your history, and never sends the
+imported text to a model. No other plugin is required.
 
 ## Install (suggested, not performed)
 
@@ -37,10 +42,25 @@ already covers Markdown copy and ZIP download without any extra plugin.
 
 ## Use
 
+### Share
+
 1. Open a Session.
 2. Click the share icon under any assistant reply.
 3. The browser downloads `dsh-session-<session-id>.html`.
-4. Send that file. The recipient opens it directly.
+4. Send that file. The recipient can open it directly, or import it if they have
+   this plugin.
+
+### Import
+
+1. Click the import icon in the Workspaces header, next to Search and View
+   options.
+2. Choose a `dsh-session-*.html` file produced by this plugin.
+3. The transcript opens in a read-only panel. Use **Back to chat** to return.
+
+The import reads only the inert JSON block embedded in the file; it does not
+execute scripts from the HTML, load remote assets, or add a Session to your
+history. The panel is a viewer, not a conversation: there is no composer and no
+way to continue the imported thread.
 
 The file is a static transcript: no JavaScript, no external styles, no fonts,
 no images fetched from the network, and no calls back to DSH. It includes:
@@ -66,30 +86,39 @@ Sessions in it.
 
 ## Compatibility
 
-Built against the current DSH Session event format and the
-`conversation.chat.assistant-actions` slot, with a per-Session
-`inject(sessionId)` callback. It uses:
+Built against the current DSH Session event format, the
+`conversation.chat.assistant-actions` slot, and the `main` keyed panel slot. The
+share action uses a per-Session `inject(sessionId)` callback; the import action
+uses the `layout` service to open a read-only panel without changing the current
+Session. It uses:
 
 - `sessionQuery.readSession()` on the Host;
 - `connection.fetch.register()` for the authenticated route;
-- the client `slots` and `locale` services.
+- the client `slots`, `locale`, and `layout` services;
+- `@deepseek-ai/dsh-client-ui-layout` as a declared client dependency.
 
-No DSH client packages are imported. The renderer is dependency-free.
+No DSH client packages are imported at runtime. The renderer is dependency-free.
+The import button finds the Workspaces header by its stable `_headerActions`
+suffix, so a future DSH redesign could move or hide it; the rest of the feature
+is slot-based.
 
 ## Recipient and translation
 
 The recipient does **not** need this plugin, DSH, or any account to read the
 downloaded HTML. Opening the file in a browser is enough.
 
-Installing the same plugin on the recipient's machine adds the same share
-button for their own Sessions; it does not add a transcript viewer and does not
-translate someone else's file. To read the file in another language, use the
-browser's built-in translation (the HTML is ordinary selectable text), or keep
-the original text and translate it externally.
+Installing the same plugin on the recipient's machine adds the same share button
+for their own Sessions **and** the Import button. With it they can open the
+received file as a read-only chat view inside DSH. Importing does not translate
+the transcript: the message text is preserved exactly as exported. Installing
+the plugin only localizes its own buttons, notices, and labels (English and
+Simplified Chinese) through DSH's `locale` service, so each person sees the DSH
+controls in their own language.
 
-The plugin's own button/tooltip text is localized (English and Simplified
-Chinese) through DSH's `locale` service, so each person sees it in the language
-of their DSH UI.
+To read the conversation in another language, use the browser's built-in
+translation on the HTML file, or translate the text externally. The file is
+ordinary selectable text, and the import panel deliberately does not rewrite the
+original wording.
 
 ## Publishing and stars
 
@@ -119,13 +148,16 @@ someone who was not there.
 
 ## Files
 
-- `index.js` — Host plugin: authenticated `/api/session.share` route and the
-  standalone HTML renderer.
-- `client.js` — Browser plugin: per-response action, locale strings, styles.
+- `index.js` — Host plugin: authenticated `/api/session.share` route, the
+  standalone HTML renderer, and the embedded import payload.
+- `client.js` — Browser plugin: per-response share action, Workspaces import
+  button, read-only chat panel, locale strings, and styles.
 - `cordis.patch.yml` — bundle patch that inserts the plugin.
 - `locale/` — package metadata for English and Simplified Chinese.
 - `icon.svg` — plugin icon.
 - `test/render.test.mjs` — renderer regression test (run with Node).
+- `test/import-payload.test.mjs` — embedded-payload round-trip and injection
+  test (run with Node).
 - `test/host-route.test.mjs` — authenticated route and error-path test.
-- `test/client-smoke.html` — browser smoke test for the module wrapper, slot
-  registration, locale dictionaries, and rendered button.
+- `test/client-smoke.html` — browser smoke test for the module wrapper, slot and
+  panel registration, locale dictionaries, and rendered button.

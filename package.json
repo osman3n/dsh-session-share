@@ -1,9 +1,9 @@
 {
   "name": "@osman3n/dsh-session-share",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Share the whole Session as a self-contained HTML transcript from the per-response action row.",
+  "description": "Share the whole Session as a self-contained HTML transcript, and import one back as a read-only chat view.",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -28,6 +28,7 @@
       "immediately": true,
       "inject": [
         "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-conversation"
       ]
     }

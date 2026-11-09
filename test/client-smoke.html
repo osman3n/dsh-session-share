@@ -35,6 +35,7 @@
       useState(initial) {
         return [initial, function () {}];
       },
+      Fragment: "fragment",
     };
 
     const mod = definition.factory(function (name) {
@@ -46,8 +47,17 @@
       fail("client inject list is incomplete");
     }
 
-    const seen = {};
+    const seen = { slots: {} };
+    const layout = {
+      selectPanel(panelId) {
+        seen.selectedPanel = panelId;
+      },
+    };
     const ctx = {
+      get(name) {
+        if (name === "layout") return layout;
+        return undefined;
+      },
       effect(fn, label) {
         seen[label] = true;
         const cleanup = fn();
@@ -57,6 +67,9 @@
         register(namespace, dictionaries) {
           seen.locale = { namespace, dictionaries };
         },
+        bind() {
+          return function (key) { return key; };
+        },
       },
       slots: {
         inject(name, register) {
@@ -65,7 +78,7 @@
           return function () {};
         },
         register(spec, component) {
-          seen.slot = { spec, component };
+          seen.slots[spec.name] = { spec, component };
           return function () {};
         },
       },
@@ -76,21 +89,27 @@
     if (!seen["session-share: stylesheet"]) fail("stylesheet effect did not run");
     if (!seen["session-share: dictionaries"]) fail("dictionary effect did not run");
     if (!seen["session-share: assistant action"]) fail("slot effect did not run");
+    if (!seen["session-share: imported chat panel"]) fail("main panel effect did not run");
+    if (!seen["session-share: import button"]) fail("import button effect did not run");
     if (seen.locale.namespace !== "session-share") fail("unexpected locale namespace");
     if (seen.locale.dictionaries.en["action.label"].indexOf("Share") < 0) fail("English label missing");
     if (!seen.locale.dictionaries.zh["action.label"]) fail("Chinese label missing");
-    if (seen.injectSlot !== "conversation.chat.assistant-actions") fail("unexpected slot name");
-    if (!seen.slot || seen.slot.spec.id !== "session-share") fail("slot was not registered");
-    if (seen.slot.spec.order !== 0) fail("unexpected slot order");
-    if (seen.slot.spec.locale !== "session-share") fail("slot locale namespace missing");
-    if (typeof seen.slot.spec.inject !== "function") fail("slot inject callback missing");
-    const injected = seen.slot.spec.inject("s-1");
+    if (seen.injectSlot !== "main") fail("unexpected last injected slot name");
+    const action = seen.slots["conversation.chat.assistant-actions"];
+    if (!action || action.spec.id !== "session-share") fail("assistant slot was not registered");
+    if (action.spec.order !== 0) fail("unexpected slot order");
+    if (action.spec.locale !== "session-share") fail("slot locale namespace missing");
+    if (typeof action.spec.inject !== "function") fail("slot inject callback missing");
+    const injected = action.spec.inject("s-1");
     if (!injected || injected.sessionId !== "s-1") fail("slot inject did not supply sessionId");
+    const main = seen.slots.main;
+    if (!main || main.spec.key !== "session-import") fail("main panel key missing");
+    if (main.spec.inject().layout !== layout) fail("main panel layout injection missing");
     if (!document.querySelector('style[data-plugin-css="@osman3n/dsh-session-share/session-share.css"]')) {
       fail("plugin stylesheet was not injected");
     }
 
-    const tree = seen.slot.component(
+    const tree = action.component(
       Object.assign({}, injected, {
         messageId: "m-1",
         t: function (key) { return key; },
