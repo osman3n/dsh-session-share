@@ -25,7 +25,7 @@ window.__ModuleLoader__.load({
     const IMPORT_VERSION = 1;
     const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
     const SHARE_ICON_PATH = "M8 1.75v7.5M5.25 4.5 8 1.75 10.75 4.5M3 8.5v4.25A1.25 1.25 0 0 0 4.25 14h7.5A1.25 1.25 0 0 0 13 12.75V8.5";
-    const IMPORT_ICON_PATH = "M8 2.5v10.75M3.75 9 8 13.25 12.25 9";
+    const IMPORT_ICON_PATH = "M8 2.5v7.75M5.5 7.75 8 10.25 10.5 7.75M2.75 8.75v2.75A1.5 1.5 0 0 0 4.25 13h7.5a1.5 1.5 0 0 0 1.5-1.5V8.75";
 
     const EN = {
       "action.label": "Share the whole session as an HTML file",
