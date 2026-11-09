@@ -1,9 +1,9 @@
 {
   "name": "@osman3n/dsh-session-share",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
-  "description": "Share a DeepSeek Harness Session as a self-contained HTML file, import it as a read-only chat, and continue it as a real Session.",
+  "description": "Share a DeepSeek Harness Session as a self-contained HTML file, import it as a native-looking read-only chat, and continue it as a real Session in a workspace you choose.",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -29,7 +29,8 @@
       "inject": [
         "@deepseek-ai/dsh-client-locale",
         "@deepseek-ai/dsh-client-ui-conversation",
-        "@deepseek-ai/dsh-client-ui-workspace"
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-api-workspace-controller"
       ]
     }
   },

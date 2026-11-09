@@ -44,6 +44,9 @@ window.__ModuleLoader__.load({
       "import.notice": "This transcript is not part of your Sessions. Continue only if you trust the file: doing so creates a real Session and sends its text to a model.",
       "import.noMessages": "This transcript contains no displayable messages.",
       "import.continue": "Continue in a new chat",
+      "import.workspace": "Workspace",
+      "import.workspaceHint": "Choose where the new chat is created.",
+      "import.noWorkspace": "No workspace found; the default workspace will be used.",
       "import.continuing": "Opening…",
       "import.continueConfirm": "Create a real Session from this imported chat? Its text becomes model context and can influence future replies. Only continue if you trust the file.",
       "import.continueSuccess": "Imported chat opened as a new Session.",
@@ -74,6 +77,9 @@ window.__ModuleLoader__.load({
       "import.notice": "此记录不属于你的会话。只有信任该文件时才继续：继续会创建真实会话，并将其文本发送给模型。",
       "import.noMessages": "此记录没有可显示的消息。",
       "import.continue": "在新会话中继续",
+      "import.workspace": "工作区",
+      "import.workspaceHint": "选择新会话要创建在哪个工作区。",
+      "import.noWorkspace": "未找到工作区；将使用默认工作区。",
       "import.continuing": "正在打开…",
       "import.continueConfirm": "要从这段导入的聊天创建真实会话吗？其文本会成为模型上下文，并影响后续回复。只有信任该文件时才继续。",
       "import.continueSuccess": "已将导入的聊天作为新会话打开。",
@@ -366,6 +372,314 @@ window.__ModuleLoader__.load({
     gap: 10px;
   }
 }
+/* Native chat layout: right-aligned user bubble, plain assistant markdown,
+   compact tool rows and the same file card used by the conversation view. */
+.dsh-session-share-panel-inner {
+  width: min(calc(var(--dsh-chat-content-width, 748px) + 32px), 100%);
+  padding: 12px 16px 96px;
+}
+.dsh-session-share-panel-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  align-items: center;
+  gap: 12px;
+  margin: 0 -16px 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, #d8dee4);
+  background: var(--dsw-alias-bg-base, var(--dsw-alias-bg-l1, #ffffff));
+}
+.dsh-session-share-panel-title {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsh-session-share-panel-meta {
+  flex-wrap: nowrap;
+  gap: 6px;
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.dsh-session-share-panel-badge {
+  flex: none;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 16px;
+}
+.dsh-session-share-panel-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.dsh-session-share-workspace {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-secondary, #656d76);
+  font-size: 12px;
+}
+.dsh-session-share-workspace select {
+  max-width: 220px;
+  min-width: 0;
+  border: 1px solid var(--dsw-alias-border-l1, #d8dee4);
+  border-radius: var(--dsw-radius-sm, 6px);
+  background: var(--dsw-alias-bg-base, #ffffff);
+  color: var(--dsw-alias-label-primary, #1f2328);
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12px;
+}
+.dsh-session-share-workspace-empty {
+  color: var(--dsw-alias-label-tertiary, #00000073);
+  font-size: 12px;
+}
+.dsh-session-share-notice {
+  margin: 0 0 10px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  line-height: 17px;
+}
+.dsh-session-share-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 18px;
+  border-top: none;
+  padding: 0;
+}
+.dsh-session-share-msg {
+  margin: 0;
+}
+.dsh-session-share-msg-user {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.dsh-session-share-msg-assistant {
+  align-self: stretch;
+}
+.dsh-session-share-role {
+  display: none;
+}
+.dsh-session-share-text {
+  max-width: 100%;
+  font-size: var(--dsh-content-font-size, 14px);
+  line-height: 1.65;
+}
+.dsh-session-share-msg-user .dsh-session-share-text {
+  box-sizing: border-box;
+  max-width: min(calc(var(--dsh-chat-content-width, 748px) * .702), 82%);
+  border: .5px solid var(--dsw-alias-border-l2, #0000001f);
+  border-left: .5px solid var(--dsw-alias-border-l2, #0000001f);
+  border-radius: var(--dsw-radius-lg, 12px);
+  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-2, #f6f8fa));
+  padding: 8px 12px;
+  white-space: pre-wrap;
+}
+.dsh-session-share-msg-assistant .dsh-session-share-text {
+  white-space: normal;
+}
+.dsh-session-share-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 100%;
+}
+.dsh-session-share-file {
+  display: inline-flex;
+  box-sizing: border-box;
+  flex: 0 0 240px;
+  width: 240px;
+  min-height: 64px;
+  align-items: center;
+  gap: 10px;
+  border: .5px solid var(--dsw-alias-border-l2, #0000001f);
+  border-radius: var(--dsw-radius-lg, 12px);
+  background: var(--dsw-specific-input-major, transparent);
+  padding: 8px 12px;
+}
+.dsh-session-share-file-icon {
+  display: grid;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: var(--dsw-alias-label-tertiary, #656d76);
+}
+.dsh-session-share-file-icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.dsh-session-share-file-content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+.dsh-session-share-file-name {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary, #1f2328);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsh-session-share-file-meta {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary, #00000073);
+  font-size: 12px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dsh-session-share-mention {
+  border-radius: 4px;
+  background: var(--dsw-alias-interactive-bg-hover, rgb(127 127 127 / 10%));
+  color: var(--dsw-alias-label-primary, #1f2328);
+  padding: 0 3px;
+  font-size: 0.94em;
+}
+.dsh-session-share-md > :first-child {
+  margin-top: 0;
+}
+.dsh-session-share-md > :last-child {
+  margin-bottom: 0;
+}
+.dsh-session-share-md p {
+  margin: 0 0 12px;
+}
+.dsh-session-share-md h1,
+.dsh-session-share-md h2,
+.dsh-session-share-md h3,
+.dsh-session-share-md h4 {
+  margin: 18px 0 8px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.dsh-session-share-md h1 { font-size: 20px; }
+.dsh-session-share-md h2 { font-size: 17px; }
+.dsh-session-share-md h3 { font-size: 15px; }
+.dsh-session-share-md h4 { font-size: 14px; }
+.dsh-session-share-md ul,
+.dsh-session-share-md ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+.dsh-session-share-md li {
+  margin: 3px 0;
+}
+.dsh-session-share-md blockquote {
+  margin: 0 0 12px;
+  border-left: 3px solid var(--dsw-alias-border-l1, #d8dee4);
+  color: var(--dsw-alias-label-secondary, #656d76);
+  padding-left: 12px;
+}
+.dsh-session-share-md code {
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-2, rgb(127 127 127 / 10%));
+  padding: 1px 4px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9em;
+}
+.dsh-session-share-md pre {
+  margin: 0 0 12px;
+  overflow: auto;
+  border: 1px solid var(--dsw-alias-border-l1, #d8dee4);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2, #f6f8fa);
+  padding: 10px 12px;
+}
+.dsh-session-share-md pre code {
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.dsh-session-share-md table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow: auto;
+  margin: 0 0 12px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.dsh-session-share-md th,
+.dsh-session-share-md td {
+  border: 1px solid var(--dsw-alias-border-l1, #d8dee4);
+  padding: 5px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+.dsh-session-share-md th {
+  background: var(--dsw-alias-bg-layer-2, #f6f8fa);
+  font-weight: 600;
+}
+.dsh-session-share-md a {
+  color: var(--dsw-alias-brand-primary, #4f6bed);
+  text-decoration: none;
+}
+.dsh-session-share-md a:hover {
+  text-decoration: underline;
+}
+.dsh-session-share-tool {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+.dsh-session-share-tool summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dsw-alias-label-tertiary, #656d76);
+  font-size: 12px;
+  line-height: 20px;
+}
+.dsh-session-share-tool-name {
+  color: var(--dsw-alias-label-secondary, #656d76);
+}
+.dsh-session-share-tool .dsh-session-share-pre {
+  margin: 6px 0 2px;
+  border: 1px solid var(--dsw-alias-border-l1, #d8dee4);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2, #f6f8fa);
+  padding: 8px 10px;
+}
+@media (max-width: 640px) {
+  .dsh-session-share-panel-inner {
+    width: 100%;
+    padding: 8px 12px 88px;
+  }
+  .dsh-session-share-panel-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin: 0 -12px 12px;
+    padding: 8px 12px;
+  }
+  .dsh-session-share-panel-actions {
+    justify-content: flex-start;
+  }
+  .dsh-session-share-workspace select {
+    max-width: none;
+    flex: 1;
+  }
+}
 `;
 
     let toastTimer = null;
@@ -502,6 +816,23 @@ window.__ModuleLoader__.load({
       return typeof value === "string" ? value : "";
     }
 
+    function normalizeAttachments(value) {
+      if (!Array.isArray(value)) return [];
+      return value.slice(0, 20).map((attachment) => {
+        if (attachment === null || typeof attachment !== "object") return null;
+        if (attachment.kind !== "image" && attachment.kind !== "file") return null;
+        const name = asText(attachment.name) || "attachment";
+        return {
+          kind: attachment.kind,
+          name,
+          bytes: typeof attachment.bytes === "number" && Number.isFinite(attachment.bytes) && attachment.bytes >= 0
+            ? Math.trunc(attachment.bytes)
+            : null,
+          mediaType: asText(attachment.mediaType) || null,
+        };
+      }).filter((attachment) => attachment !== null);
+    }
+
     function normalizeImportedData(payload) {
       if (payload === null || typeof payload !== "object") throw new Error("invalid payload");
       if (payload.format !== IMPORT_FORMAT || payload.version !== IMPORT_VERSION) {
@@ -534,10 +865,11 @@ window.__ModuleLoader__.load({
                 kind: segment.kind,
                 text: asText(segment.text),
                 toolCalls: segment.toolCalls === true,
+                attachments: segment.kind === "user" ? normalizeAttachments(segment.attachments) : [],
               };
             }
             return null;
-          }).filter((segment) => segment !== null && (segment.kind === "tool" || segment.text.length > 0)),
+          }).filter((segment) => segment !== null && (segment.kind === "tool" || segment.text.length > 0 || segment.attachments.length > 0)),
         };
       }).filter((turn) => turn.segments.length > 0);
 
@@ -684,12 +1016,267 @@ window.__ModuleLoader__.load({
       };
     }
 
+    const EMPTY_WORKSPACES = { items: [] };
+
+    function normalizedPath(value) {
+      return String(value ?? "").replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+    }
+
+    function useWorkspaceSnapshot(workspaces) {
+      const subscribe = React.useCallback(
+        (listener) => {
+          if (workspaces !== undefined && workspaces !== null && workspaces.list !== undefined && typeof workspaces.list.subscribe === "function") {
+            return workspaces.list.subscribe(listener);
+          }
+          return () => {};
+        },
+        [workspaces],
+      );
+      const getSnapshot = React.useCallback(() => {
+        if (workspaces !== undefined && workspaces !== null && workspaces.list !== undefined && typeof workspaces.list.getSnapshot === "function") {
+          return workspaces.list.getSnapshot() ?? EMPTY_WORKSPACES;
+        }
+        return EMPTY_WORKSPACES;
+      }, [workspaces]);
+      return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+    }
+
+    function formatBytes(bytes) {
+      if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes < 0) return "";
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function extensionOf(name) {
+      const dot = name.lastIndexOf(".");
+      return dot > 0 ? name.slice(dot + 1).toUpperCase().slice(0, 8) : "";
+    }
+
+    function FileGlyph(props) {
+      return React.createElement(
+        "svg",
+        { viewBox: "0 0 20 20", "aria-hidden": "true", focusable: "false" },
+        React.createElement("path", {
+          d: props.image
+            ? "M4.5 3.5h7l4 4v9h-11zM11.5 3.5v4h4M6.5 12.5l2-2 1.5 1.5 1.5-2 2 2.5"
+            : "M5 2.75h6.25L15 6.5v10.75H5zM11.25 2.75V6.5H15M7.25 10h5.5M7.25 12.75h5.5",
+          fill: "none",
+          stroke: "currentColor",
+          strokeWidth: "1.2",
+          strokeLinecap: "round",
+          strokeLinejoin: "round",
+        }),
+      );
+    }
+
+    function ImportedAttachments(props) {
+      if (props.attachments.length === 0) return null;
+      return React.createElement(
+        "div",
+        { className: "dsh-session-share-attachments" },
+        props.attachments.map((attachment, index) => {
+          const meta = [extensionOf(attachment.name), formatBytes(attachment.bytes), attachment.mediaType]
+            .filter((part) => part.length > 0)
+            .join(" ");
+          return React.createElement(
+            "span",
+            {
+              key: `${index}-${attachment.name}`,
+              className: "dsh-session-share-file",
+              title: attachment.name,
+            },
+            React.createElement(
+              "span",
+              { className: "dsh-session-share-file-icon" },
+              React.createElement(FileGlyph, { image: attachment.kind === "image" }),
+            ),
+            React.createElement(
+              "span",
+              { className: "dsh-session-share-file-content" },
+              React.createElement("span", { className: "dsh-session-share-file-name" }, attachment.name),
+              meta.length > 0 ? React.createElement("span", { className: "dsh-session-share-file-meta" }, meta) : null,
+            ),
+          );
+        }),
+      );
+    }
+
+    function renderUserInline(text) {
+      const parts = String(text).split(/(@(?:"[^"]+"|[^\s@]+))/g);
+      return parts.map((part, index) => {
+        if (index % 2 === 1) {
+          return React.createElement("span", { key: index, className: "dsh-session-share-mention" }, part);
+        }
+        return part;
+      });
+    }
+
+    function renderInline(text, keyPrefix) {
+      const pattern = /(`[^`\n]+`|\*\*[^*\n]+\*\*|\[[^\]\n]+\]\(https?:\/\/[^)\s]+\))/g;
+      const nodes = [];
+      let last = 0;
+      let match;
+      let index = 0;
+      while ((match = pattern.exec(text)) !== null) {
+        if (match.index > last) nodes.push(text.slice(last, match.index));
+        const token = match[0];
+        if (token.startsWith("`")) {
+          nodes.push(React.createElement("code", { key: `${keyPrefix}-c${index++}` }, token.slice(1, -1)));
+        } else if (token.startsWith("**")) {
+          nodes.push(React.createElement("strong", { key: `${keyPrefix}-b${index++}` }, token.slice(2, -2)));
+        } else {
+          const link = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/.exec(token);
+          if (link !== null) {
+            nodes.push(React.createElement("a", {
+              key: `${keyPrefix}-a${index++}`,
+              href: link[2],
+              target: "_blank",
+              rel: "noreferrer noopener",
+            }, link[1]));
+          } else {
+            nodes.push(token);
+          }
+        }
+        last = match.index + token.length;
+      }
+      if (last < text.length) nodes.push(text.slice(last));
+      return nodes;
+    }
+
+    function splitTableRow(line) {
+      return line.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|").map((cell) => cell.trim());
+    }
+
+    function renderMarkdown(text) {
+      const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+      const blocks = [];
+      let index = 0;
+
+      while (index < lines.length) {
+        const line = lines[index];
+        if (line.trim().length === 0) {
+          index += 1;
+          continue;
+        }
+
+        if (/^```/.test(line)) {
+          const code = [];
+          index += 1;
+          while (index < lines.length && !/^```/.test(lines[index])) {
+            code.push(lines[index]);
+            index += 1;
+          }
+          if (index < lines.length) index += 1;
+          blocks.push(React.createElement(
+            "pre",
+            { key: `code-${blocks.length}` },
+            React.createElement("code", null, code.join("\n")),
+          ));
+          continue;
+        }
+
+        const heading = /^(#{1,6})\s+(.*)$/.exec(line);
+        if (heading !== null) {
+          const level = Math.min(4, heading[1].length);
+          blocks.push(React.createElement(`h${level}`, { key: `h-${blocks.length}` }, renderInline(heading[2], `h${blocks.length}`)));
+          index += 1;
+          continue;
+        }
+
+        if (/^\s*\|?\s*:?-{3,}/.test(line) && index > 0 && lines[index - 1].includes("|")) {
+          // A table header was already consumed as a paragraph; handle it here
+          // only when the parser starts at the delimiter (rare).
+          index += 1;
+          continue;
+        }
+
+        if (line.includes("|") && index + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[index + 1])) {
+          const header = splitTableRow(line);
+          index += 2;
+          const rows = [];
+          while (index < lines.length && lines[index].includes("|") && lines[index].trim().length > 0) {
+            rows.push(splitTableRow(lines[index]));
+            index += 1;
+          }
+          blocks.push(React.createElement(
+            "table",
+            { key: `t-${blocks.length}` },
+            React.createElement("thead", null, React.createElement("tr", null, header.map((cell, cellIndex) =>
+              React.createElement("th", { key: cellIndex }, renderInline(cell, `th${blocks.length}-${cellIndex}`)),
+            ))),
+            React.createElement("tbody", null, rows.map((row, rowIndex) =>
+              React.createElement("tr", { key: rowIndex }, header.map((_, cellIndex) =>
+                React.createElement("td", { key: cellIndex }, renderInline(row[cellIndex] ?? "", `td${blocks.length}-${rowIndex}-${cellIndex}`)),
+              )),
+            )),
+          ));
+          continue;
+        }
+
+        if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
+          const ordered = /^\s*\d+\.\s+/.test(line);
+          const items = [];
+          while (index < lines.length && /^\s*([-*+]|\d+\.)\s+/.test(lines[index])) {
+            items.push(lines[index].replace(/^\s*([-*+]|\d+\.)\s+/, ""));
+            index += 1;
+          }
+          const ListTag = ordered ? "ol" : "ul";
+          blocks.push(React.createElement(
+            ListTag,
+            { key: `l-${blocks.length}` },
+            items.map((item, itemIndex) => React.createElement("li", { key: itemIndex }, renderInline(item, `li${blocks.length}-${itemIndex}`))),
+          ));
+          continue;
+        }
+
+        if (/^\s*>\s?/.test(line)) {
+          const quoted = [];
+          while (index < lines.length && /^\s*>\s?/.test(lines[index])) {
+            quoted.push(lines[index].replace(/^\s*>\s?/, ""));
+            index += 1;
+          }
+          blocks.push(React.createElement("blockquote", { key: `q-${blocks.length}` }, renderInline(quoted.join("\n"), `q${blocks.length}`)));
+          continue;
+        }
+
+        if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+          blocks.push(React.createElement("hr", { key: `hr-${blocks.length}` }));
+          index += 1;
+          continue;
+        }
+
+        const paragraph = [line];
+        index += 1;
+        while (index < lines.length && lines[index].trim().length > 0 && !/^(#{1,6})\s+|^```|^\s*([-*+]|\d+\.)\s+|^\s*>\s?/.test(lines[index])) {
+          if (lines[index].includes("|") && index + 1 < lines.length && /^\s*\|?\s*:?-{3,}/.test(lines[index + 1])) break;
+          paragraph.push(lines[index]);
+          index += 1;
+        }
+        blocks.push(React.createElement(
+          "p",
+          { key: `p-${blocks.length}` },
+          renderInline(paragraph.join(" "), `p${blocks.length}`),
+        ));
+      }
+
+      return React.createElement("div", { className: "dsh-session-share-md" }, blocks);
+    }
+
     function ImportedMessage(props) {
+      const isUser = props.kind === "user";
+      const text = props.text.length > 0
+        ? isUser
+          ? React.createElement("div", { className: "dsh-session-share-text" }, renderUserInline(props.text))
+          : React.createElement("div", { className: "dsh-session-share-text" }, renderMarkdown(props.text))
+        : null;
       return React.createElement(
         "article",
         { className: `dsh-session-share-msg dsh-session-share-msg-${props.kind}` },
-        React.createElement("div", { className: "dsh-session-share-role" }, props.role),
-        React.createElement("div", { className: "dsh-session-share-text" }, props.text),
+        isUser && props.attachments !== undefined && props.attachments.length > 0
+          ? React.createElement(ImportedAttachments, { attachments: props.attachments })
+          : null,
+        text,
       );
     }
 
@@ -740,16 +1327,16 @@ window.__ModuleLoader__.load({
             return React.createElement(ImportedMessage, {
               key,
               kind: "user",
-              role: props.t("import.you"),
               text: segment.text,
+              attachments: segment.attachments,
             });
           }
           if (segment.kind === "assistant") {
             return React.createElement(ImportedMessage, {
               key,
               kind: "assistant",
-              role: props.t("import.assistant"),
               text: segment.text,
+              attachments: [],
             });
           }
           return React.createElement(ImportedTool, { key, tool: segment, t: props.t });
@@ -762,7 +1349,26 @@ window.__ModuleLoader__.load({
       const t = typeof props.t === "function" ? props.t : (key) => EN[key] ?? key;
       const layout = props.layout;
       const uiWorkspace = props.uiWorkspace;
+      const workspaces = props.workspaces;
+      const workspaceState = useWorkspaceSnapshot(workspaces);
+      const workspaceItems = Array.isArray(workspaceState.items)
+        ? workspaceState.items.filter((item) => item !== null && typeof item === "object" && typeof item.workspaceId === "string" && item.workspaceId.length > 0)
+        : [];
+      const workspaceKey = workspaceItems.map((item) => item.workspaceId).join("|");
+      const [workspaceId, setWorkspaceId] = React.useState("");
       const [continuing, setContinuing] = React.useState(false);
+      const dataSessionId = data === null ? "" : data.sessionId;
+
+      React.useEffect(() => {
+        if (data === null) return;
+        const wanted = normalizedPath(data.cwd);
+        const match = workspaceItems.find((item) => wanted.length > 0 && normalizedPath(item.path) === wanted)
+          ?? workspaceItems[0];
+        setWorkspaceId((previous) => {
+          if (workspaceItems.some((item) => item.workspaceId === previous)) return previous;
+          return match === undefined ? "" : match.workspaceId;
+        });
+      }, [dataSessionId, workspaceKey]);
 
       const continueInNewChat = async () => {
         if (data === null || continuing) return;
@@ -770,24 +1376,30 @@ window.__ModuleLoader__.load({
           showToast(t("import.continueFailed"), "error");
           return;
         }
+        if (workspaceItems.length > 0 && workspaceId.length === 0) {
+          showToast(t("import.workspaceHint"), "error");
+          return;
+        }
         if (typeof window.confirm === "function" && !window.confirm(t("import.continueConfirm"))) return;
 
         setContinuing(true);
         try {
+          const body = {
+            format: IMPORT_FORMAT,
+            version: IMPORT_VERSION,
+            title: data.title,
+            sessionId: data.sessionId,
+            cwd: data.cwd,
+            createdAt: data.createdAt,
+            exportedAt: data.exportedAt,
+            turns: data.turns,
+          };
+          if (workspaceId.length > 0) body.workspaceId = workspaceId;
           const response = await fetch(CONTINUE_ROUTE, {
             method: "POST",
             credentials: "same-origin",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({
-              format: IMPORT_FORMAT,
-              version: IMPORT_VERSION,
-              title: data.title,
-              sessionId: data.sessionId,
-              cwd: data.cwd,
-              createdAt: data.createdAt,
-              exportedAt: data.exportedAt,
-              turns: data.turns,
-            }),
+            body: JSON.stringify(body),
           });
           let result = {};
           try {
@@ -850,11 +1462,31 @@ window.__ModuleLoader__.load({
               "div",
               { className: "dsh-session-share-panel-actions" },
               React.createElement(
+                "label",
+                { className: "dsh-session-share-workspace", title: t("import.workspaceHint") },
+                React.createElement("span", null, t("import.workspace")),
+                workspaceItems.length === 0
+                  ? React.createElement("span", { className: "dsh-session-share-workspace-empty" }, t("import.noWorkspace"))
+                  : React.createElement(
+                      "select",
+                      {
+                        value: workspaceId,
+                        disabled: continuing,
+                        onChange: (event) => setWorkspaceId(event.target.value),
+                      },
+                      workspaceItems.map((item) => React.createElement(
+                        "option",
+                        { key: item.workspaceId, value: item.workspaceId },
+                        item.title || item.path || item.workspaceId,
+                      )),
+                    ),
+              ),
+              React.createElement(
                 "button",
                 {
                   type: "button",
                   className: "dsh-session-share-continue",
-                  disabled: continuing,
+                  disabled: continuing || (workspaceItems.length > 0 && workspaceId.length === 0),
                   onClick: continueInNewChat,
                 },
                 continuing ? t("import.continuing") : t("import.continue"),
@@ -882,11 +1514,12 @@ window.__ModuleLoader__.load({
       );
     }
 
-    const inject = ["slots", "locale", "layout", "uiWorkspace"];
+    const inject = ["slots", "locale", "layout", "uiWorkspace", "workspaces"];
 
     function apply(ctx) {
       const layout = typeof ctx.get === "function" ? ctx.get("layout") : Reflect.get(ctx, "layout");
       const uiWorkspace = typeof ctx.get === "function" ? ctx.get("uiWorkspace") : Reflect.get(ctx, "uiWorkspace");
+      const workspaces = typeof ctx.get === "function" ? ctx.get("workspaces") : Reflect.get(ctx, "workspaces");
 
       ctx.effect(() => {
         ensureCss();
@@ -924,7 +1557,7 @@ window.__ModuleLoader__.load({
               name: "main",
               key: PANEL_ID,
               locale: NS,
-              inject: () => ({ layout, uiWorkspace }),
+              inject: () => ({ layout, uiWorkspace, workspaces }),
             },
             ImportedChatPanel,
           ),

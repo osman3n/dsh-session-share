@@ -26,11 +26,19 @@ file and opens a read-only, chat-style transcript in the central panel. Merely
 opening it does not create a Session, add anything to your history, or send the
 imported text to a model. No other plugin is required.
 
+The imported panel uses the same conversation width, right-aligned user
+messages, plain assistant Markdown, and attachment cards as the normal chat.
+Image and file attachments are shown by name, size, and type; their bytes are
+not embedded in the shared HTML. Tool output stays in compact collapsible rows.
+
 The imported panel has one explicit **Continue in a new chat** button. It creates
 a real Session and appends the imported turns to that Session's log, so the next
 message continues the conversation with the imported history in model context.
 That action does send the imported text to the configured model; it asks for
-confirmation first.
+confirmation first. A workspace selector next to the button chooses where the
+new Session is created. It preselects the workspace whose path matches the
+imported Session's `cwd`, when one exists, and otherwise uses the first
+workspace shown by DSH.
 
 ## Install (suggested, not performed)
 
@@ -67,12 +75,12 @@ Only the inert JSON block embedded in the file is read; imported HTML scripts ar
 never executed, remote assets are never loaded, and merely importing adds no
 Session to your history.
 
-To continue it, click **Continue in a new chat**, read the warning, and confirm.
-The plugin creates a new Session through the normal Host controller (so it gets
-the normal workspace, agent, and persistence writer), appends one completed turn
-per imported turn, and opens that Session. The imported history is then visible
-in the normal chat and the next message you send continues from it. The button
-does not silently send anything before you confirm.
+To continue it, choose the destination workspace in the Continue row, read the
+warning, and confirm. The plugin creates a new Session through the normal Host
+controller (so it gets the normal workspace, agent, and persistence writer),
+appends one completed turn per imported turn, and opens that Session. The
+imported history is then visible in the normal chat and the next message you send
+continues from it. The button does not silently send anything before you confirm.
 
 If the file contains tool output, it is appended inside the corresponding
 assistant turn with an explicit `[Imported tool output: …]` label. The plugin
@@ -86,7 +94,8 @@ no images fetched from the network, and no calls back to DSH. It includes:
 - a collapsible "Working notes" section with intermediate assistant text and
   tool calls;
 - tool arguments and results;
-- labels for image and file attachments (attachment bytes are not embedded).
+- attachment cards for images and files, with name/size/type metadata (the bytes
+  themselves are not embedded).
 
 ## Privacy
 
@@ -120,7 +129,8 @@ Session. It uses:
 - `connection.fetch.register()` for the authenticated routes;
 - `sessionController.create()` plus the live `sessions` store to create the
   continuable Session, and `sessions.flush()` before handing the id back;
-- the client `slots`, `locale`, `layout`, and `uiWorkspace` services;
+- the client `slots`, `locale`, `layout`, `uiWorkspace`, and `workspaces`
+  services;
 - `@deepseek-ai/dsh-client-ui-layout` and
   `@deepseek-ai/dsh-client-ui-workspace` as declared client dependencies.
 

@@ -43,7 +43,7 @@
       throw new Error("unexpected require: " + name);
     });
 
-    if (!Array.isArray(mod.inject) || mod.inject.indexOf("slots") < 0 || mod.inject.indexOf("locale") < 0 || mod.inject.indexOf("uiWorkspace") < 0) {
+    if (!Array.isArray(mod.inject) || mod.inject.indexOf("slots") < 0 || mod.inject.indexOf("locale") < 0 || mod.inject.indexOf("uiWorkspace") < 0 || mod.inject.indexOf("workspaces") < 0) {
       fail("client inject list is incomplete");
     }
 
@@ -58,10 +58,21 @@
         seen.openedSession = sessionId;
       },
     };
+    const workspaces = {
+      list: {
+        getSnapshot() {
+          return { items: [{ workspaceId: "ws-1", path: "C:\\work", title: "Work", sessionIds: [] }] };
+        },
+        subscribe() {
+          return function () {};
+        },
+      },
+    };
     const ctx = {
       get(name) {
         if (name === "layout") return layout;
         if (name === "uiWorkspace") return uiWorkspace;
+        if (name === "workspaces") return workspaces;
         return undefined;
       },
       effect(fn, label) {
@@ -102,6 +113,8 @@
     if (!seen.locale.dictionaries.en["import.continue"]) fail("English continue label missing");
     if (!seen.locale.dictionaries.zh["action.label"]) fail("Chinese label missing");
     if (!seen.locale.dictionaries.zh["import.continue"]) fail("Chinese continue label missing");
+    if (!seen.locale.dictionaries.en["import.workspace"]) fail("English workspace label missing");
+    if (!seen.locale.dictionaries.zh["import.workspace"]) fail("Chinese workspace label missing");
     if (seen.injectSlot !== "main") fail("unexpected last injected slot name");
     const action = seen.slots["conversation.chat.assistant-actions"];
     if (!action || action.spec.id !== "session-share") fail("assistant slot was not registered");
@@ -115,6 +128,7 @@
     const mainProps = main.spec.inject();
     if (mainProps.layout !== layout) fail("main panel layout injection missing");
     if (mainProps.uiWorkspace !== uiWorkspace) fail("main panel workspace injection missing");
+    if (mainProps.workspaces !== workspaces) fail("main panel workspaces injection missing");
     if (!document.querySelector('style[data-plugin-css="@osman3n/dsh-session-share/session-share.css"]')) {
       fail("plugin stylesheet was not injected");
     }

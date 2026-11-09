@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Session share",
-    "description": "Share the whole Session as a self-contained HTML transcript, import one back as a read-only chat view, and continue it as a real Session."
+    "description": "Share the whole Session as a self-contained HTML transcript, import it as a native-looking read-only chat, and continue it as a real Session in a workspace you choose."
   }
 }

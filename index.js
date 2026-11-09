@@ -102,7 +102,7 @@ async function continueSessionResponse(ctx, request) {
   let sessionId;
   try {
     request.signal.throwIfAborted();
-    const created = await controller.create({});
+    const created = await controller.create(imported.workspaceId === null ? {} : { workspaceId: imported.workspaceId });
     sessionId = created?.sessionId;
     if (typeof sessionId !== "string" || sessionId.length === 0) {
       throw new Error("session controller returned no session id");
@@ -172,15 +172,57 @@ function normalizeContinuePayload(payload) {
         throw new Error(`turn ${turnIndex + 1} segment ${segmentIndex + 1} has an unknown kind`);
       }
       const text = boundedText(segment.text, 200000, "message text");
+      const attachments = normalizeAttachments(segment.attachments);
       totalText += text.length;
       if (totalText > 2_000_000) throw new Error("transcript is too large");
-      return { kind: segment.kind, text };
+      return { kind: segment.kind, text, attachments };
     });
     return { segments };
   });
 
+  let workspaceId = null;
+  if (payload.workspaceId !== undefined && payload.workspaceId !== null) {
+    if (typeof payload.workspaceId !== "string") throw new Error("workspace id must be text");
+    const normalized = payload.workspaceId.trim();
+    if (normalized.length > 0) workspaceId = boundedText(normalized, 200, "workspace id");
+  }
+
   const title = boundedText(payload.title, 120, "title") || "Imported chat";
-  return { title, turns };
+  return { title, workspaceId, turns };
+}
+
+/**
+ * Keep only the attachment metadata the importer understands.
+ *
+ * @param {unknown} value
+ * @returns {Array<{kind: string, name: string, bytes?: number, mediaType?: string}>}
+ */
+function normalizeAttachments(value) {
+  if (value === undefined || value === null) return [];
+  if (!Array.isArray(value)) throw new Error("attachments must be a list");
+  if (value.length > 20) throw new Error("a message has too many attachments");
+  return value.map((attachment) => {
+    if (attachment === null || typeof attachment !== "object" || Array.isArray(attachment)) {
+      throw new Error("attachment metadata is invalid");
+    }
+    if (attachment.kind !== "image" && attachment.kind !== "file") {
+      throw new Error("attachment kind is invalid");
+    }
+    const entry = {
+      kind: attachment.kind,
+      name: boundedText(attachment.name, 300, "attachment name") || "attachment",
+    };
+    if (attachment.bytes !== undefined) {
+      if (typeof attachment.bytes !== "number" || !Number.isFinite(attachment.bytes) || attachment.bytes < 0) {
+        throw new Error("attachment size is invalid");
+      }
+      entry.bytes = Math.trunc(attachment.bytes);
+    }
+    if (attachment.mediaType !== undefined) {
+      entry.mediaType = boundedText(attachment.mediaType, 120, "attachment media type");
+    }
+    return entry;
+  });
 }
 
 /**
@@ -248,12 +290,16 @@ function appendImportedHistory(session, imported) {
 
     for (const segment of turn.segments) {
       if (segment.kind !== "user") continue;
+      const attachmentLabels = Array.isArray(segment.attachments)
+        ? segment.attachments.map((attachment) => `[Imported ${attachment.kind}: ${attachment.name}]`)
+        : [];
+      const text = [segment.text, ...attachmentLabels].filter((part) => part.length > 0).join("\n");
       session.append(
         "user/message",
         {
           role: "user",
           source: { kind: "user" },
-          content: [{ type: "text", text: segment.text }],
+          content: [{ type: "text", text }],
           id: randomUUID(),
         },
         { surfaceOp: "append" },
@@ -540,6 +586,9 @@ function sessionShareData(snapshot, turns, title, createdAt, exportedAt) {
           kind: segment.kind,
           text: segment.text,
           toolCalls: segment.toolCalls === true,
+          ...(Array.isArray(segment.attachments) && segment.attachments.length > 0
+            ? { attachments: segment.attachments }
+            : {}),
         };
       }),
     })),
@@ -601,9 +650,10 @@ function collectTurns(events) {
       }
       case "user/message": {
         if (event.surfaceOp !== "append" || event.data?.source?.kind !== "user") break;
-        const text = visibleContent(event.data?.content);
-        if (text.length === 0) break;
-        ensureTurn().segments.push({ kind: "user", text });
+        const text = visibleText(event.data?.content);
+        const attachments = visibleAttachments(event.data?.content);
+        if (text.length === 0 && attachments.length === 0) break;
+        ensureTurn().segments.push({ kind: "user", text, attachments });
         break;
       }
       case "assistant/message": {
@@ -650,6 +700,51 @@ function collectTurns(events) {
   }
 
   return turns.filter((turn) => turn.segments.length > 0);
+}
+
+/**
+ * Extract only the visible text blocks. Attachments are rendered separately by
+ * the importer, so their placeholder labels must not leak into the message
+ * text (or into the model context when the chat is continued).
+ *
+ * @param {unknown} content
+ * @returns {string}
+ */
+function visibleText(content) {
+  if (!Array.isArray(content)) return "";
+  const parts = [];
+  for (const block of content) {
+    if (!block || typeof block !== "object") continue;
+    if (block.type === "text" && typeof block.text === "string") parts.push(block.text);
+  }
+  return parts.join("\n").trim();
+}
+
+/**
+ * Keep the metadata needed for a native-looking file card. Bytes are never
+ * embedded in the share payload.
+ *
+ * @param {unknown} content
+ * @returns {Array<{kind: string, name: string, bytes?: number, mediaType?: string}>}
+ */
+function visibleAttachments(content) {
+  if (!Array.isArray(content)) return [];
+  const attachments = [];
+  for (const block of content) {
+    if (!block || typeof block !== "object") continue;
+    if (block.type !== "image" && block.type !== "file") continue;
+    const attachment = block.attachment ?? {};
+    const entry = { kind: block.type, name: attachmentName(block) };
+    if (Number.isFinite(attachment.bytes) && attachment.bytes >= 0) {
+      entry.bytes = Math.trunc(attachment.bytes);
+    }
+    if (typeof attachment.mediaType === "string" && attachment.mediaType.length > 0) {
+      entry.mediaType = attachment.mediaType;
+    }
+    attachments.push(entry);
+    if (attachments.length >= 20) break;
+  }
+  return attachments;
 }
 
 /**

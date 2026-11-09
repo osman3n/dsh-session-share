@@ -12,6 +12,7 @@ function makeContext() {
   };
   let renamed = null;
   let flushed = false;
+  const created = [];
   const ctx = {
     connection: {
       fetch: {
@@ -23,7 +24,12 @@ function makeContext() {
     },
     get(name) {
       if (name === "sessionController") {
-        return { create: async () => ({ sessionId: "sess-new" }) };
+        return {
+          create: async (options) => {
+            created.push(options);
+            return { sessionId: "sess-new" };
+          },
+        };
       }
       if (name === "sessions") {
         return {
@@ -46,7 +52,7 @@ function makeContext() {
     },
   };
   apply(ctx);
-  return { route: routes.get("/api/session.share/continue"), events, session, flushed: () => flushed, renamed: () => renamed };
+  return { route: routes.get("/api/session.share/continue"), events, session, flushed: () => flushed, renamed: () => renamed, created };
 }
 
 const payload = {
@@ -55,10 +61,15 @@ const payload = {
   title: "Imported demo",
   sessionId: "sess-source",
   cwd: "C:\\work",
+  workspaceId: "ws-target",
   turns: [
     {
       segments: [
-        { kind: "user", text: "hello" },
+        {
+          kind: "user",
+          text: "hello",
+          attachments: [{ kind: "file", name: "report.pdf", bytes: 2048, mediaType: "application/pdf" }],
+        },
         { kind: "assistant", text: "checking", toolCalls: true },
         { kind: "tool", name: "read", arguments: "{\"path\":\"a.txt\"}", result: { text: "file body", isError: false, reason: "" } },
         { kind: "assistant", text: "done" },
@@ -67,7 +78,7 @@ const payload = {
   ],
 };
 
-const { route, events, flushed, renamed } = makeContext();
+const { route, events, flushed, renamed, created } = makeContext();
 const response = await route.fetch(new Request("http://localhost/api/session.share/continue", {
   method: "POST",
   headers: { "content-type": "application/json" },
@@ -77,6 +88,7 @@ assert.equal(response.status, 200);
 assert.deepEqual(await response.json(), { sessionId: "sess-new" });
 assert.equal(flushed(), true);
 assert.equal(renamed(), "Imported demo");
+assert.deepEqual(created, [{ workspaceId: "ws-target" }]);
 assert.deepEqual(events.map((event) => event.type), [
   "turn/start",
   "step/start",
@@ -91,7 +103,8 @@ assert.equal(events[1].data.step, 1);
 assert.equal(events[2].data.turn, 1);
 assert.equal(events[2].data.step, 1);
 assert.equal(events[2].data.message.role, "system");
-assert.equal(events[3].data.content[0].text, "hello");
+assert.equal(events[3].data.content[0].text, "hello\n[Imported file: report.pdf]");
+assert.equal(events[3].data.content[0].type, "text");
 assert.match(events[4].data.message.content[0].text, /checking/);
 assert.match(events[4].data.message.content[0].text, /\[Imported tool output: read\]/);
 assert.match(events[4].data.message.content[0].text, /file body/);
@@ -111,5 +124,16 @@ const tooMany = await route.fetch(new Request("http://localhost/api/session.shar
   body: JSON.stringify({ format: "dsh-session-share", version: 1, turns: Array.from({ length: 201 }, () => ({ segments: [] })) }),
 }));
 assert.equal(tooMany.status, 400);
+
+const fallback = makeContext();
+const noWorkspacePayload = { ...payload };
+delete noWorkspacePayload.workspaceId;
+const fallbackResponse = await fallback.route.fetch(new Request("http://localhost/api/session.share/continue", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(noWorkspacePayload),
+}));
+assert.equal(fallbackResponse.status, 200);
+assert.deepEqual(fallback.created, [{}]);
 
 console.log("continue-route.test.mjs: all assertions passed");

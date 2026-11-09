@@ -15,7 +15,11 @@ const snapshot = {
       surfaceOp: "append",
       data: {
         source: { kind: "user" },
-        content: [{ type: "text", text: "Show me <b>this</b> & that" }],
+        content: [
+          { type: "text", text: "Show me <b>this</b> & that" },
+          { type: "file", name: "report.pdf", attachment: { name: "report.pdf", bytes: 2048, mediaType: "application/pdf" } },
+          { type: "image", attachment: { name: "diagram.png", bytes: 512, mediaType: "image/png" } },
+        ],
       },
     },
     {
@@ -75,6 +79,10 @@ assert.equal(payload.cwd, "C:\\work\\demo");
 assert.equal(payload.turns.length, 1);
 assert.equal(payload.turns[0].segments[0].kind, "user");
 assert.match(payload.turns[0].segments[0].text, /<b>this<\/b>/);
+assert.deepEqual(payload.turns[0].segments[0].attachments, [
+  { kind: "file", name: "report.pdf", bytes: 2048, mediaType: "application/pdf" },
+  { kind: "image", name: "diagram.png", bytes: 512, mediaType: "image/png" },
+]);
 assert.equal(payload.turns[0].segments[1].kind, "assistant");
 assert.equal(payload.turns[0].segments[1].toolCalls, true);
 assert.equal(payload.turns[0].segments[2].kind, "tool");
