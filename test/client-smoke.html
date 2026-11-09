@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>client smoke test</title>
+<script>
+  window.__loaded = null;
+  window.__ModuleLoader__ = {
+    load(definition) {
+      window.__loaded = definition;
+    },
+  };
+</script>
+</head>
+<body>
+<pre id="result">RUNNING</pre>
+<script src="../client.js"></script>
+<script>
+(function () {
+  const result = document.getElementById("result");
+  const fail = (message) => {
+    result.textContent = "FAIL: " + message;
+    throw new Error(message);
+  };
+
+  try {
+    const definition = window.__loaded;
+    if (!definition) fail("module was not captured");
+    if (definition.id !== "@osman3n/dsh-session-share") fail("unexpected module id");
+
+    const React = {
+      createElement(type, props, ...children) {
+        return { type, props: Object.assign({}, props, { children }) };
+      },
+      useState(initial) {
+        return [initial, function () {}];
+      },
+    };
+
+    const mod = definition.factory(function (name) {
+      if (name === "react") return React;
+      throw new Error("unexpected require: " + name);
+    });
+
+    if (!Array.isArray(mod.inject) || mod.inject.indexOf("slots") < 0 || mod.inject.indexOf("locale") < 0) {
+      fail("client inject list is incomplete");
+    }
+
+    const seen = {};
+    const ctx = {
+      effect(fn, label) {
+        seen[label] = true;
+        const cleanup = fn();
+        return typeof cleanup === "function" ? cleanup : function () {};
+      },
+      locale: {
+        register(namespace, dictionaries) {
+          seen.locale = { namespace, dictionaries };
+        },
+      },
+      slots: {
+        inject(name, register) {
+          seen.injectSlot = name;
+          register();
+          return function () {};
+        },
+        register(spec, component) {
+          seen.slot = { spec, component };
+          return function () {};
+        },
+      },
+    };
+
+    mod.apply(ctx);
+
+    if (!seen["session-share: stylesheet"]) fail("stylesheet effect did not run");
+    if (!seen["session-share: dictionaries"]) fail("dictionary effect did not run");
+    if (!seen["session-share: assistant action"]) fail("slot effect did not run");
+    if (seen.locale.namespace !== "session-share") fail("unexpected locale namespace");
+    if (seen.locale.dictionaries.en["action.label"].indexOf("Share") < 0) fail("English label missing");
+    if (!seen.locale.dictionaries.zh["action.label"]) fail("Chinese label missing");
+    if (seen.injectSlot !== "conversation.chat.assistant-actions") fail("unexpected slot name");
+    if (!seen.slot || seen.slot.spec.id !== "session-share") fail("slot was not registered");
+    if (seen.slot.spec.order !== 0) fail("unexpected slot order");
+    if (seen.slot.spec.locale !== "session-share") fail("slot locale namespace missing");
+    if (typeof seen.slot.spec.inject !== "function") fail("slot inject callback missing");
+    const injected = seen.slot.spec.inject("s-1");
+    if (!injected || injected.sessionId !== "s-1") fail("slot inject did not supply sessionId");
+    if (!document.querySelector('style[data-plugin-css="@osman3n/dsh-session-share/session-share.css"]')) {
+      fail("plugin stylesheet was not injected");
+    }
+
+    const tree = seen.slot.component(
+      Object.assign({}, injected, {
+        messageId: "m-1",
+        t: function (key) { return key; },
+      }),
+    );
+    if (!tree || tree.type !== "button") fail("assistant action did not render a button");
+    if (tree.props.className !== "dsh-session-share") fail("unexpected button class");
+    if (tree.props["aria-label"] !== "action.label") fail("button label is not localized");
+
+    result.textContent = "PASS";
+  } catch (error) {
+    if (result.textContent.indexOf("FAIL") !== 0) result.textContent = "FAIL: " + error.message;
+  }
+})();
+</script>
+</body>
+</html>
