@@ -288,8 +288,31 @@ function appendImportedHistory(session, imported) {
       );
     }
 
-    for (const segment of turn.segments) {
-      if (segment.kind !== "user") continue;
+    appendImportedSegments(session, turn.segments, turnNumber);
+
+    session.append("step/end", { turn: turnNumber, step: 1 });
+    session.append("turn/end", { turn: turnNumber, reason: { kind: "completed" } });
+  });
+}
+
+/**
+ * Replay one turn's segments as message and tool events, preserving their order.
+ * Assistant text plus any immediately following tools become one assistant
+ * message with tool-call blocks; each call then gets a tool/call and a
+ * tool/result event so the normal chat renders native tool rows.
+ *
+ * @param {object} session - live Session from the store
+ * @param {Array<object>} segments - normalized imported segments
+ * @param {number} turnNumber
+ */
+function appendImportedSegments(session, segments, turnNumber) {
+  const step = 1;
+  let index = 0;
+
+  while (index < segments.length) {
+    const segment = segments[index];
+
+    if (segment.kind === "user") {
       const attachmentLabels = Array.isArray(segment.attachments)
         ? segment.attachments.map((attachment) => `[Imported ${attachment.kind}: ${attachment.name}]`)
         : [];
@@ -304,26 +327,50 @@ function appendImportedHistory(session, imported) {
         },
         { surfaceOp: "append" },
       );
+      index += 1;
+      continue;
     }
 
-    const assistantText = turn.segments
-      .map((segment) => {
-        if (segment.kind === "assistant") return segment.text;
-        if (segment.kind !== "tool") return "";
-        return formatImportedTool(segment);
-      })
-      .filter((part) => part.length > 0)
-      .join("\n\n");
+    if (segment.kind !== "assistant" && segment.kind !== "tool") {
+      index += 1;
+      continue;
+    }
+
+    const assistantText = [];
+    if (segment.kind === "assistant") {
+      if (segment.text.length > 0) assistantText.push(segment.text);
+      index += 1;
+    }
+
+    const tools = [];
+    while (index < segments.length && segments[index].kind === "tool") {
+      tools.push(segments[index]);
+      index += 1;
+    }
+
+    if (assistantText.length === 0 && tools.length === 0) continue;
+
+    const callIds = tools.map(() => `call_${randomUUID().replace(/-/g, "")}`);
+    const content = [];
+    if (assistantText.length > 0) content.push({ type: "text", text: assistantText.join("\n\n") });
+    tools.forEach((tool, toolIndex) => {
+      content.push({
+        type: "tool-call",
+        id: callIds[toolIndex],
+        name: tool.name,
+        arguments: tool.arguments,
+      });
+    });
 
     session.append(
       "assistant/message",
       {
         turn: turnNumber,
-        step: 1,
+        step,
         message: {
           role: "assistant",
           source: { kind: "model", provider: "imported", model: "imported" },
-          content: [{ type: "text", text: assistantText.length > 0 ? assistantText : "(No assistant reply was recorded.)" }],
+          content,
           id: randomUUID(),
         },
         stream: [],
@@ -331,24 +378,43 @@ function appendImportedHistory(session, imported) {
       { surfaceOp: "append" },
     );
 
-    session.append("step/end", { turn: turnNumber, step: 1 });
-    session.append("turn/end", { turn: turnNumber, reason: { kind: "completed" } });
-  });
-}
+    tools.forEach((tool, toolIndex) => {
+      const callId = callIds[toolIndex];
+      session.append("tool/call", {
+        turn: turnNumber,
+        step,
+        callId,
+        name: tool.name,
+        arguments: tool.arguments,
+      });
 
-/**
- * @param {{name: string, arguments: string, result: {text: string, isError: boolean, reason: string} | null}} tool
- * @returns {string}
- */
-function formatImportedTool(tool) {
-  const lines = [`[Imported tool output: ${tool.name}]`];
-  if (tool.arguments.length > 0) lines.push(`Arguments:\n${tool.arguments}`);
-  if (tool.result !== null) {
-    const status = tool.result.isError ? " (error)" : "";
-    const result = tool.result.text.length > 0 ? tool.result.text : tool.result.reason;
-    if (result.length > 0) lines.push(`Result${status}:\n${result}`);
+      const result = tool.result;
+      const resultText = result === null
+        ? ""
+        : result.text.length > 0
+          ? result.text
+          : result.reason;
+      session.append(
+        "tool/result",
+        {
+          turn: turnNumber,
+          step,
+          message: {
+            id: randomUUID(),
+            role: "tool",
+            source: { kind: "tool", callId },
+            toolCallId: callId,
+            content: [{
+              type: "text",
+              text: resultText.length > 0 ? resultText : "No result was recorded.",
+            }],
+            isError: result !== null && result.isError === true,
+          },
+        },
+        { surfaceOp: "append" },
+      );
+    });
   }
-  return lines.join("\n");
 }
 
 /**

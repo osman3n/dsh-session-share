@@ -81,9 +81,11 @@ appends one completed turn per imported turn, and opens that Session. The
 imported history is then visible in the normal chat and the next message you send
 continues from it. The button does not silently send anything before you confirm.
 
-If the file contains tool output, it is appended inside the corresponding
-assistant turn with an explicit `[Imported tool output: ...]` label. The plugin
-does not fabricate tool-call ids or claim that a tool ran in the new Session.
+If the file contains tool output, the continuation replays each call and result
+as real tool events, so the normal chat shows a compact tool row instead of raw
+text. The original call ids are not in the transcript, so fresh local ids are
+assigned; this is a historical replay, not a claim that the tool ran again in the
+new Session.
 
 The file is a static transcript: no JavaScript, no external styles, no fonts,
 no images fetched from the network, and no calls back to DSH. It includes:

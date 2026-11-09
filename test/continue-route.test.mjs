@@ -95,6 +95,9 @@ assert.deepEqual(events.map((event) => event.type), [
   "system/message",
   "user/message",
   "assistant/message",
+  "tool/call",
+  "tool/result",
+  "assistant/message",
   "step/end",
   "turn/end",
 ]);
@@ -105,11 +108,23 @@ assert.equal(events[2].data.step, 1);
 assert.equal(events[2].data.message.role, "system");
 assert.equal(events[3].data.content[0].text, "hello\n[Imported file: report.pdf]");
 assert.equal(events[3].data.content[0].type, "text");
-assert.match(events[4].data.message.content[0].text, /checking/);
-assert.match(events[4].data.message.content[0].text, /\[Imported tool output: read\]/);
-assert.match(events[4].data.message.content[0].text, /file body/);
-assert.match(events[4].data.message.content[0].text, /done/);
-assert.equal(events[6].data.reason.kind, "completed");
+assert.equal(events[4].data.message.content[0].text, "checking");
+assert.equal(events[4].data.message.content[1].type, "tool-call");
+assert.equal(events[4].data.message.content[1].name, "read");
+assert.equal(events[4].data.message.content[1].arguments, "{\"path\":\"a.txt\"}");
+const callId = events[4].data.message.content[1].id;
+assert.match(callId, /^call_[0-9a-f]+$/);
+assert.equal(events[5].data.callId, callId);
+assert.equal(events[5].data.name, "read");
+assert.equal(events[5].data.arguments, "{\"path\":\"a.txt\"}");
+assert.equal(events[6].data.message.toolCallId, callId);
+assert.equal(events[6].data.message.source.kind, "tool");
+assert.equal(events[6].data.message.source.callId, callId);
+assert.equal(events[6].data.message.content[0].text, "file body");
+assert.equal(events[6].data.message.isError, false);
+assert.equal(typeof events[6].data.message.id, "string");
+assert.equal(events[7].data.message.content[0].text, "done");
+assert.equal(events[9].data.reason.kind, "completed");
 
 const bad = await route.fetch(new Request("http://localhost/api/session.share/continue", {
   method: "POST",
