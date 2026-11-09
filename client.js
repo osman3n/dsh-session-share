@@ -24,6 +24,7 @@ window.__ModuleLoader__.load({
     const IMPORT_FORMAT = "dsh-session-share";
     const IMPORT_VERSION = 1;
     const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
+    const SHARE_ICON_PATH = "M8 1.75v7.5M5.25 4.5 8 1.75 10.75 4.5M3 8.5v4.25A1.25 1.25 0 0 0 4.25 14h7.5A1.25 1.25 0 0 0 13 12.75V8.5";
 
     const EN = {
       "action.label": "Share the whole session as an HTML file",
@@ -380,7 +381,7 @@ window.__ModuleLoader__.load({
           focusable: "false",
         },
         React.createElement("path", {
-          d: "M8 1.75v7.5M5.25 4.5 8 1.75 10.75 4.5M3 8.5v4.25A1.25 1.25 0 0 0 4.25 14h7.5A1.25 1.25 0 0 0 13 12.75V8.5",
+          d: SHARE_ICON_PATH,
           fill: "none",
           stroke: "currentColor",
           strokeWidth: "1.25",
@@ -600,7 +601,7 @@ window.__ModuleLoader__.load({
       button.dataset.dshSessionShareImport = "";
       button.title = t("import.label");
       button.setAttribute("aria-label", t("import.label"));
-      button.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 10.5V2.75M5.5 5.25 8 2.75l2.5 2.5M3 10.25v1.5A1.25 1.25 0 0 0 4.25 13h7.5A1.25 1.25 0 0 0 13 11.75v-1.5" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      button.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="' + SHARE_ICON_PATH + '" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       button.addEventListener("click", () => {
         const input = ensureFileInput(layout, t);
         input.value = "";
