@@ -1,4 +1,4 @@
-﻿# DSH Session Share
+# DSH Session Share
 
 Download a whole Session as one self-contained HTML file and send it to anyone.
 The recipient can open it in a browser without DSH, an account, a server, or an
@@ -36,9 +36,8 @@ a real Session and appends the imported turns to that Session's log, so the next
 message continues the conversation with the imported history in model context.
 That action does send the imported text to the configured model; it asks for
 confirmation first. A workspace selector next to the button chooses where the
-new Session is created. It preselects the workspace whose path matches the
-imported Session's `cwd`, when one exists, and otherwise uses the first
-workspace shown by DSH.
+new Session is created. It defaults to **Ungrouped**; pick a Workspace from the
+list if you want the new chat filed there.
 
 ## Install (suggested, not performed)
 
@@ -75,8 +74,8 @@ Only the inert JSON block embedded in the file is read; imported HTML scripts ar
 never executed, remote assets are never loaded, and merely importing adds no
 Session to your history.
 
-To continue it, choose the destination workspace in the Continue row, read the
-warning, and confirm. The plugin creates a new Session through the normal Host
+To continue it, leave the destination as **Ungrouped** or choose a Workspace in
+the Continue row, read the warning, and confirm. The plugin creates a new Session through the normal Host
 controller (so it gets the normal workspace, agent, and persistence writer),
 appends one completed turn per imported turn, and opens that Session. The
 imported history is then visible in the normal chat and the next message you send

@@ -115,6 +115,8 @@
     if (!seen.locale.dictionaries.zh["import.continue"]) fail("Chinese continue label missing");
     if (!seen.locale.dictionaries.en["import.workspace"]) fail("English workspace label missing");
     if (!seen.locale.dictionaries.zh["import.workspace"]) fail("Chinese workspace label missing");
+    if (!seen.locale.dictionaries.en["import.ungrouped"]) fail("English ungrouped label missing");
+    if (!seen.locale.dictionaries.zh["import.ungrouped"]) fail("Chinese ungrouped label missing");
     if (seen.injectSlot !== "main") fail("unexpected last injected slot name");
     const action = seen.slots["conversation.chat.assistant-actions"];
     if (!action || action.spec.id !== "session-share") fail("assistant slot was not registered");

@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "@osman3n/dsh-session-share",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "type": "module",
   "description": "Share a DeepSeek Harness Session as a self-contained HTML file, import it as a native-looking read-only chat, and continue it as a real Session in a workspace you choose.",
@@ -54,3 +54,4 @@
   },
   "homepage": "https://github.com/osman3n/dsh-session-share#readme"
 }
+

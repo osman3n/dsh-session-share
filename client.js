@@ -45,8 +45,8 @@ window.__ModuleLoader__.load({
       "import.noMessages": "This transcript contains no displayable messages.",
       "import.continue": "Continue in a new chat",
       "import.workspace": "Workspace",
-      "import.workspaceHint": "Choose where the new chat is created.",
-      "import.noWorkspace": "No workspace found; the default workspace will be used.",
+      "import.workspaceHint": "Choose where the new chat is created. Ungrouped is the default.",
+      "import.ungrouped": "Ungrouped (default)",
       "import.continuing": "Opening…",
       "import.continueConfirm": "Create a real Session from this imported chat? Its text becomes model context and can influence future replies. Only continue if you trust the file.",
       "import.continueSuccess": "Imported chat opened as a new Session.",
@@ -78,8 +78,8 @@ window.__ModuleLoader__.load({
       "import.noMessages": "此记录没有可显示的消息。",
       "import.continue": "在新会话中继续",
       "import.workspace": "工作区",
-      "import.workspaceHint": "选择新会话要创建在哪个工作区。",
-      "import.noWorkspace": "未找到工作区；将使用默认工作区。",
+      "import.workspaceHint": "选择新会话要创建在哪个工作区。默认是未分组。",
+      "import.ungrouped": "未分组（默认）",
       "import.continuing": "正在打开…",
       "import.continueConfirm": "要从这段导入的聊天创建真实会话吗？其文本会成为模型上下文，并影响后续回复。只有信任该文件时才继续。",
       "import.continueSuccess": "已将导入的聊天作为新会话打开。",
@@ -433,10 +433,6 @@ window.__ModuleLoader__.load({
   color: var(--dsw-alias-label-primary, #1f2328);
   padding: 4px 6px;
   font: inherit;
-  font-size: 12px;
-}
-.dsh-session-share-workspace-empty {
-  color: var(--dsw-alias-label-tertiary, #00000073);
   font-size: 12px;
 }
 .dsh-session-share-notice {
@@ -1018,10 +1014,6 @@ window.__ModuleLoader__.load({
 
     const EMPTY_WORKSPACES = { items: [] };
 
-    function normalizedPath(value) {
-      return String(value ?? "").replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
-    }
-
     function useWorkspaceSnapshot(workspaces) {
       const subscribe = React.useCallback(
         (listener) => {
@@ -1360,24 +1352,18 @@ window.__ModuleLoader__.load({
       const dataSessionId = data === null ? "" : data.sessionId;
 
       React.useEffect(() => {
-        if (data === null) return;
-        const wanted = normalizedPath(data.cwd);
-        const match = workspaceItems.find((item) => wanted.length > 0 && normalizedPath(item.path) === wanted)
-          ?? workspaceItems[0];
-        setWorkspaceId((previous) => {
-          if (workspaceItems.some((item) => item.workspaceId === previous)) return previous;
-          return match === undefined ? "" : match.workspaceId;
-        });
-      }, [dataSessionId, workspaceKey]);
+        setWorkspaceId("");
+      }, [dataSessionId]);
+
+      React.useEffect(() => {
+        if (workspaceId.length === 0) return;
+        if (!workspaceItems.some((item) => item.workspaceId === workspaceId)) setWorkspaceId("");
+      }, [workspaceId, workspaceKey]);
 
       const continueInNewChat = async () => {
         if (data === null || continuing) return;
         if (uiWorkspace === undefined || typeof uiWorkspace.openSession !== "function") {
           showToast(t("import.continueFailed"), "error");
-          return;
-        }
-        if (workspaceItems.length > 0 && workspaceId.length === 0) {
-          showToast(t("import.workspaceHint"), "error");
           return;
         }
         if (typeof window.confirm === "function" && !window.confirm(t("import.continueConfirm"))) return;
@@ -1465,28 +1451,27 @@ window.__ModuleLoader__.load({
                 "label",
                 { className: "dsh-session-share-workspace", title: t("import.workspaceHint") },
                 React.createElement("span", null, t("import.workspace")),
-                workspaceItems.length === 0
-                  ? React.createElement("span", { className: "dsh-session-share-workspace-empty" }, t("import.noWorkspace"))
-                  : React.createElement(
-                      "select",
-                      {
-                        value: workspaceId,
-                        disabled: continuing,
-                        onChange: (event) => setWorkspaceId(event.target.value),
-                      },
-                      workspaceItems.map((item) => React.createElement(
-                        "option",
-                        { key: item.workspaceId, value: item.workspaceId },
-                        item.title || item.path || item.workspaceId,
-                      )),
-                    ),
+                React.createElement(
+                  "select",
+                  {
+                    value: workspaceId,
+                    disabled: continuing,
+                    onChange: (event) => setWorkspaceId(event.target.value),
+                  },
+                  React.createElement("option", { value: "" }, t("import.ungrouped")),
+                  workspaceItems.map((item) => React.createElement(
+                    "option",
+                    { key: item.workspaceId, value: item.workspaceId },
+                    item.title || item.path || item.workspaceId,
+                  )),
+                ),
               ),
               React.createElement(
                 "button",
                 {
                   type: "button",
                   className: "dsh-session-share-continue",
-                  disabled: continuing || (workspaceItems.length > 0 && workspaceId.length === 0),
+                  disabled: continuing,
                   onClick: continueInNewChat,
                 },
                 continuing ? t("import.continuing") : t("import.continue"),
