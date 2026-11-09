@@ -40,7 +40,8 @@
     "share",
     "export",
     "html",
-    "transcript"
+    "transcript",
+    "dsh-plugin"
   ],
   "license": "MIT",
   "repository": {
