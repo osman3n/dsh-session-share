@@ -142,7 +142,11 @@ Session. It uses:
 No DSH client packages are imported at runtime. The renderer is dependency-free.
 The import button finds the Workspaces header by its stable `_headerActions`
 suffix, so a future DSH redesign could move or hide it; the rest of the feature
-is slot-based.
+is slot-based. That header caps its action row at 60px — room for two 28px
+buttons only — so the plugin relaxes the cap while the row is visible and
+appends the import button after the shipped View options and Add workspace
+buttons. All of them stay visible together; during search the shipped row still
+collapses as before.
 
 ## Recipient and translation
 

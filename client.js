@@ -178,6 +178,13 @@ window.__ModuleLoader__.load({
   width: 16px;
   height: 16px;
 }
+/* The shipped Workspaces header caps its action row at 60px, which fits only
+   two 28px buttons. The import button is a third one, so the row needs its
+   natural width while it is visible; the shipped hidden state still collapses
+   it to zero during search. */
+[class*="_sectionHeader"] [class*="_headerActions"]:not([class*="_headerActionsHidden"]) {
+  max-width: none;
+}
 .dsh-session-share-panel {
   box-sizing: border-box;
   display: flex;
@@ -978,11 +985,14 @@ window.__ModuleLoader__.load({
     }
 
     function ensureImportButton(layout, t) {
-      const existing = document.querySelector("[data-dsh-session-share-import]");
-      if (existing !== null && existing.isConnected) return;
       const actions = findWorkspaceHeaderActions();
       if (actions === null) return;
-      actions.insertBefore(makeImportButton(layout, t), actions.firstChild);
+      const existing = document.querySelector("[data-dsh-session-share-import]");
+      if (existing !== null && existing.isConnected) {
+        if (actions.lastElementChild !== existing) actions.appendChild(existing);
+        return;
+      }
+      actions.appendChild(makeImportButton(layout, t));
     }
 
     function startImportButton(ctx, layout) {
